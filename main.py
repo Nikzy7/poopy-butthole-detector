@@ -4,6 +4,7 @@ import cv2
 import math
 from playsound import playsound
 import threading
+import imutils
 
 cam = cv2.VideoCapture(0)
 
@@ -14,8 +15,21 @@ overlay_real = cv2.imread("f_n.png")
 
 thread_var = False
 
-def act2(src):
-    overlay = cv2.resize(overlay_real, (src.shape[1],src.shape[0]), fx=1, fy=1)
+def act2(src,x1,y1,x2,y2):
+    #calculate angle
+    try: 
+        slope = int((x2-x1)/(y2-y1))
+        angle_radian = math.atan(slope)
+        angle_degree = math.degrees(angle_radian)
+        if angle_degree<0:
+            overlay = imutils.rotate_bound(overlay_real,270-angle_degree)
+        else:
+            overlay = imutils.rotate_bound(overlay_real,90-abs(angle_degree))
+    except:
+        #zero div error case keeping it constant
+        overlay = overlay_real
+
+    overlay = cv2.resize(overlay, (src.shape[1],src.shape[0]), fx=1, fy=1)
     overlayMask = cv2.cvtColor( overlay, cv2.COLOR_BGR2GRAY )
     res, overlayMask = cv2.threshold( overlayMask, 10, 1, cv2.THRESH_BINARY_INV)
 
@@ -99,16 +113,17 @@ while True:
         h = chiny-head_y
 
         #frame[y:y+h, x:x+w] = applyblur(frame[y:y+h, x:x+w])
-        frame[y:y+h, x:x+w] = act2(frame[y:y+h, x:x+w])
+        frame[y:y+h, x:x+w] = act2(frame[y:y+h, x:x+w],w_x1,w_y1,w_x2,w_y2)
 
         #cv2.rectangle(frame, (x,y), (x+w, y+h), (0, 15, 120), 5)
 
     cv2.imshow("face detection",frame)  
 
+    
     if len(faces)>=1 and thread_var==False:
         thread1 = threading.Thread(target=sound)
         thread1.start()
-
+    
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
